@@ -1,12 +1,9 @@
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
-import Header from './components/Header'
-import Hero from './components/Hero'
-import Section from './components/Section'
-import LinkCard from './components/LinkCard'
-import Footer from './components/Footer'
+import Hero from '../components/Hero'
+import reactLogo from '../assets/react.svg'
+import viteLogo from '../assets/vite.svg'
+import heroImg from '../assets/hero.png'
+import Section from '../components/Section'
+import LinkCard from '../components/LinkCard'
 
 const documentationLinks = [
   { href: 'https://vite.dev/', label: 'Explore Vite', icon: viteLogo },
@@ -20,10 +17,9 @@ const socialLinks = [
   { href: 'https://bsky.app/profile/vite.dev', label: 'Bluesky', icon: '/icons.svg#bluesky-icon' }
 ]
 
-function App() {
+export default function HomePage() {
   return (
     <>
-      <Header />
       <Hero heroImg={heroImg} reactLogo={reactLogo} viteLogo={viteLogo} />
       
       <div className="ticks"></div>
@@ -66,9 +62,6 @@ function App() {
 
       <div className="ticks"></div>
       <section id="spacer"></section>
-      <Footer />
     </>
   )
 }
-
-export default App
