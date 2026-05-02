@@ -98,9 +98,9 @@ const HomePage = () => {
           <h2 className="text-3xl font-bold text-white mb-12">Featured Characters</h2>
           <div className="grid gap-6 md:grid-cols-4">
             {[
-              { card: card1, name: 'Rangiku' },
-              { card: card2, name: 'Orihime' },
-              { card: card3, name: 'Nel' },
+              { card: card1, name: 'Ichigo Vs Ulquiorra' },
+              { card: card2, name: 'Grimmjow Vs Ichigo' },
+              { card: card3, name: 'Vasto Ichigoat' },
               { card: card4, name: 'The Goat Ichigo' }
             ].map(({ card, name }, index) => (
               <article key={index} className="rounded-[2rem] overflow-hidden border border-orange-700/20 bg-slate-950/85 shadow-lg shadow-orange-900/20 transition hover:-translate-y-1">

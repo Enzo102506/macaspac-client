@@ -3,9 +3,9 @@ import logo from '../assets/logo.png';
 
 const links = [
   { label: 'Home', to: '/' },
-  // { label: 'Dashboard', to: '/dashboard' },
-  // { label: 'Reports', to: '/reports' },
-  // { label: 'Users', to: '/users' },
+  { label: 'Dashboard', to: '/dashboard' },
+  { label: 'Reports', to: '/reports' },
+  { label: 'Users', to: '/users' },
   { label: 'About', to: '/about' },
   { label: 'Articles', to: '/articles' },
   { label: 'Sign In', to: '/auth/signin' },
