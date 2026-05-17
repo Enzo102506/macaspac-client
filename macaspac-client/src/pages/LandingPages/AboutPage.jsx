@@ -1,5 +1,5 @@
-import Button from '../components/Button';
-import aboutImage from '../assets/goat.gif';
+import Button from '../../components/Button';
+import aboutImage from '../../assets/goat.gif';
 
 const AboutPage = () => {
   return (

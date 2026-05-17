@@ -1,4 +1,4 @@
-import DashboardLayout from '../components/DashboardLayout';
+import DashboardLayout from '../../layouts/DashLayout';
 import { Box, Chip, Grid, LinearProgress, Paper, Stack, Typography } from '@mui/material';
 
 const stats = [
