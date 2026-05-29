@@ -3,11 +3,13 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 // HomePage Structure
 import Layout from "./layouts/Layout";
 import ArticlePage from './pages/LandingPages/ArticlePage';
+import ArticleListPage from './pages/LandingPages/ArticleListPage';
 import HomePage from './pages/LandingPages/HomePage';
 import AboutPage from './pages/LandingPages/AboutPage';
 import DashboardPage from './pages/DashboardPages/DashboardPage';
 import ReportsPage from './pages/DashboardPages/ReportsPage';
 import UsersPage from './pages/DashboardPages/UsersPage';
+import DashArticleListPage from './pages/DashboardPages/DashArticleListPage';
 import SignInPage from './pages/AuthPages/SignInPage';
 import SignUpPage from './pages/AuthPages/SignUpPage';
 import NotFoundPage from './pages/LandingPages/NotFoundPage';
@@ -30,6 +32,10 @@ const routes = [
         element: <ArticlePage />,
       },
       {
+        path: 'article-list',
+        element: <ArticleListPage />,
+      },
+      {
         path: 'dashboard',
         element: <DashboardPage />,
       },
@@ -40,6 +46,10 @@ const routes = [
       {
         path: 'users',
         element: <UsersPage />,
+      },
+      {
+        path: 'dashboard/articles',
+        element: <DashArticleListPage />,
       },
     ],
   },

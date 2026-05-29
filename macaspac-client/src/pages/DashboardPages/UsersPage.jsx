@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import DashboardLayout from '../../layouts/DashLayout';
 import {
   Box,
@@ -25,10 +25,11 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
+import { fetchUsers, createUser, updateUser, deleteUser } from '../../services/UserService';
 
 const initialUsers = [
   {
-    id: 1,
+    _id: 1,
     firstName: 'Ichigo',
     lastName: 'Kurosaki',
     email: 'ichigo@karakura.dev',
@@ -41,7 +42,7 @@ const initialUsers = [
     isActive: true,
   },
   {
-    id: 2,
+    _id: 2,
     firstName: 'Rukia',
     lastName: 'Kuchiki',
     email: 'rukia@soulreaper.dev',
@@ -54,7 +55,7 @@ const initialUsers = [
     isActive: true,
   },
   {
-    id: 3,
+    _id: 3,
     firstName: 'Orihime',
     lastName: 'Inoue',
     email: 'orihime@karakura.dev',
@@ -67,7 +68,7 @@ const initialUsers = [
     isActive: false,
   },
   {
-    id: 4,
+    _id: 4,
     firstName: 'Chad',
     lastName: 'Yasutora',
     email: 'chad@karakura.dev',
@@ -109,6 +110,20 @@ const UsersPage = () => {
   const [form, setForm] = useState(blankForm);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [paginationModel, setPaginationModel] = useState({ pageSize: 5, page: 0 });
+
+  // Fetch users from API on component mount
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const { data } = await fetchUsers();
+        setUsers(data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+    loadUsers();
+  }, []);
 
   const filteredRows = useMemo(() => {
     return users.filter((user) => {
@@ -140,7 +155,7 @@ const UsersPage = () => {
         contactNumber: user.contactNumber,
         age: user.age,
         gender: user.gender,
-        role: user.role,
+        role: user.type || user.role || 'Support',
         password: '',
         isActive: user.isActive,
       });
@@ -192,12 +207,12 @@ const UsersPage = () => {
     if (!hasValue(form.gender)) nextErrors.gender = 'Gender is required.';
 
     const emailAlreadyExists = users.some(
-      (user) => user.email.toLowerCase() === form.email.trim().toLowerCase() && user.id !== editingUser?.id,
+      (user) => user.email.toLowerCase() === form.email.trim().toLowerCase() && user._id !== editingUser?._id,
     );
     if (emailAlreadyExists) nextErrors.email = 'This email address already exists.';
 
     const usernameAlreadyExists = users.some(
-      (user) => user.username.toLowerCase() === form.username.trim().toLowerCase() && user.id !== editingUser?.id,
+      (user) => user.username.toLowerCase() === form.username.trim().toLowerCase() && user._id !== editingUser?._id,
     );
     if (usernameAlreadyExists) nextErrors.username = 'Username already exists.';
 
@@ -205,7 +220,7 @@ const UsersPage = () => {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     if (!validate()) return;
 
@@ -217,25 +232,40 @@ const UsersPage = () => {
       username: form.username.trim(),
       contactNumber: form.contactNumber.trim(),
       age: form.age.trim(),
+      type: form.role,
       status: form.isActive ? 'Active' : 'Inactive',
     };
 
-    if (editingUser) {
-      setUsers((prev) => prev.map((user) => (user.id === editingUser.id ? { ...user, ...nextUser } : user)));
-    } else {
-      const nextId = users.reduce((max, user) => Math.max(max, user.id), 0) + 1;
-      setUsers((prev) => [...prev, { id: nextId, ...nextUser }]);
+    try {
+      if (editingUser) {
+        await updateUser(editingUser._id, nextUser);
+        setUsers((prev) => prev.map((user) => (user._id === editingUser._id ? { ...user, ...nextUser } : user)));
+      } else {
+        const { data } = await createUser(nextUser);
+        setUsers((prev) => [...prev, data]);
+      }
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error saving user:', error);
+      setErrors({ submit: error.response?.data?.message || 'Error saving user' });
     }
-
-    handleCloseModal();
   };
 
-  const toggleActivation = (id) => {
-    setUsers((prev) =>
-      prev.map((user) =>
-        user.id === id ? { ...user, isActive: !user.isActive, status: !user.isActive ? 'Active' : 'Inactive' } : user,
-      ),
-    );
+  const toggleActivation = async (id) => {
+    try {
+      const user = users.find(u => u._id === id);
+      if (user) {
+        const updatedUser = { ...user, isActive: !user.isActive, status: !user.isActive ? 'Active' : 'Inactive' };
+        await updateUser(user._id, updatedUser);
+        setUsers((prev) =>
+          prev.map((u) =>
+            u._id === id ? updatedUser : u,
+          ),
+        );
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
   };
 
   const columns = [
@@ -276,7 +306,7 @@ const UsersPage = () => {
             size="small"
             variant="contained"
             color={row.isActive ? 'warning' : 'success'}
-            onClick={() => toggleActivation(row.id)}
+            onClick={() => toggleActivation(row._id)}
           >
             {row.isActive ? 'Deactivate' : 'Activate'}
           </Button>
@@ -362,8 +392,10 @@ const UsersPage = () => {
               <DataGrid
                 rows={Array.isArray(filteredRows) ? filteredRows : []}
                 columns={columns}
-                pageSize={5}
-                rowsPerPageOptions={[5]}
+                getRowId={(row) => row._id || row.id || Math.random()}
+                paginationModel={paginationModel}
+                onPaginationModelChange={setPaginationModel}
+                pageSizeOptions={[5, 10, 25]}
                 disableSelectionOnClick
                 sx={{
                   border: 'none',

@@ -1,7 +1,9 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import PeopleIcon from '@mui/icons-material/People';
+import ArticleIcon from '@mui/icons-material/Article';
 import { Box, Divider, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography } from '@mui/material';
 
 const drawerWidth = 280;
@@ -9,11 +11,24 @@ const drawerWidth = 280;
 const navItems = [
   { label: 'Dashboard', to: '/dashboard', icon: <DashboardIcon /> },
   { label: 'Reports', to: '/reports', icon: <BarChartIcon /> },
-  { label: 'Users', to: '/users', icon: <PeopleIcon /> },
+  { label: 'Users', to: '/users', icon: <PeopleIcon />, requiredRole: 'admin' },
+  { label: 'Articles', to: '/articles', icon: <ArticleIcon />, requiredRole: 'admin' },
 ];
 
 const DashboardLayout = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const userType = localStorage.getItem('type');
+
+  useEffect(() => {
+    const path = location.pathname;
+    
+    // Block editors from accessing /dashboard/users
+    if (userType === 'editor' && (path === '/users' || path === '/dashboard/users')) {
+      navigate('/dashboard');
+      return;
+    }
+  }, [location.pathname, userType, navigate]);
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100%' }}>
@@ -45,7 +60,9 @@ const DashboardLayout = ({ children }) => {
         <Divider sx={{ borderColor: 'rgba(249, 115, 22, 0.25)' }} />
 
         <List disablePadding>
-          {navItems.map((item) => (
+          {navItems
+            .filter(item => !item.requiredRole || item.requiredRole === userType)
+            .map((item) => (
             <ListItemButton
               key={item.label}
               component={Link}

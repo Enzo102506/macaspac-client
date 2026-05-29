@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import PeopleIcon from '@mui/icons-material/People';
+import LogoutIcon from '@mui/icons-material/Logout';
 import logo from '../assets/logo.png';
 
 const links = [
@@ -23,6 +24,18 @@ const navLinkClassName = ({ isActive }) =>
 
 const NavBar = () => {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // Check if user is logged in
+  const isLoggedIn = localStorage.getItem('token');
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('firstName');
+    localStorage.removeItem('type');
+    setOpen(false);
+    navigate('/');
+  };
 
   // explicit side links with icons to match DashLayout
   const sideLinks = [
@@ -64,6 +77,16 @@ const NavBar = () => {
             </NavLink>
           ))}
         </nav>
+
+        {isLoggedIn && (
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 rounded-full border-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] transition border-red-500/50 text-red-300 hover:border-red-400 hover:bg-red-500/20"
+          >
+            <LogoutIcon sx={{ fontSize: 16 }} />
+            <span>Logout</span>
+          </button>
+        )}
       </div>
 
       <div

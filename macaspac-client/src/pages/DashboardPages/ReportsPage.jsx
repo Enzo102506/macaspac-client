@@ -69,6 +69,7 @@ const ReportsPage = () => {
   const [roleFilter, setRoleFilter] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [paginationModel, setPaginationModel] = useState({ pageSize: 5, page: 0 });
   // (Users managed on Users page)
 
   const columnsUsers = [
@@ -309,8 +310,10 @@ const ReportsPage = () => {
                     <DataGrid
                       rows={Array.isArray(filteredUsers) ? filteredUsers : []}
                       columns={columnsUsers}
-                      pageSize={5}
-                      rowsPerPageOptions={[5]}
+                      getRowId={(row) => row._id || row.id || Math.random()}
+                      paginationModel={paginationModel}
+                      onPaginationModelChange={setPaginationModel}
+                      pageSizeOptions={[5, 10, 25]}
                       disableSelectionOnClick
                       sx={{
                         border: 'none',
