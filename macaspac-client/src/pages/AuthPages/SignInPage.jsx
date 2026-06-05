@@ -17,18 +17,17 @@ const SignInPage = () => {
       const { data } = await loginUser({ email, password });
       console.log('Login successful:', data);
 
-      // Check if user is a viewer - viewers are not allowed to log in
-      if (data.type === 'viewer') {
-        setError('Viewers are not allowed to log in.');
-        return;
-      }
-
       localStorage.setItem('firstName', data.firstName);
       localStorage.setItem('token', data.token);
       localStorage.setItem('type', data.type);
 
-      // Navigate to the dashboard with the user's email and type
-      navigate('/dashboard', { state: { firstName: data.firstName, type: data.type } });
+      const redirectTo = data.type === 'viewer'
+        ? '/'
+        : data.type === 'editor'
+          ? '/dashboard/articles'
+          : '/dashboard';
+
+      navigate(redirectTo, { state: { firstName: data.firstName, type: data.type } });
     } catch (err) {
       console.error('Login failed:', err.response?.data?.message || err.message);
       setError(err.response?.data?.message || 'Login failed. Please try again');

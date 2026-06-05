@@ -10,9 +10,7 @@ const ArticleListPage = () => {
     const loadArticles = async () => {
       try {
         const { data } = await fetchArticles();
-        // Filter to show only active articles
-        const activeArticles = data.filter((article) => article.status === 'active' && article.isActive);
-        setArticles(activeArticles);
+        setArticles(data);
       } catch (error) {
         console.error('Error fetching articles:', error);
       } finally {

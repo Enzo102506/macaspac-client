@@ -12,6 +12,7 @@ import {
   FormControl,
   IconButton,
   InputAdornment,
+  InputLabel,
   MenuItem,
   Paper,
   Select,
@@ -27,6 +28,17 @@ import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import { fetchUsers, createUser, updateUser, deleteUser } from '../../services/UserService';
 
+const roles = ['Admin', 'Editor', 'Viewer'];
+const genders = ['male', 'female', 'other'];
+const statusOptions = ['All', 'Active', 'Inactive'];
+
+const normalizeRole = (value) => {
+  const normalized = `${value ?? ''}`.toString().trim().toLowerCase();
+  if (normalized.includes('admin')) return 'Admin';
+  if (normalized.includes('editor')) return 'Editor';
+  return 'Viewer';
+};
+
 const initialUsers = [
   {
     _id: 1,
@@ -37,7 +49,8 @@ const initialUsers = [
     contactNumber: '09171234567',
     age: '17',
     gender: 'male',
-    role: 'Leader',
+    role: 'Admin',
+    displayRole: 'Admin',
     status: 'Active',
     isActive: true,
   },
@@ -50,8 +63,9 @@ const initialUsers = [
     contactNumber: '09181234567',
     age: '18',
     gender: 'female',
-    role: 'Support',
-    status: 'On Duty',
+    role: 'Editor',
+    displayRole: 'Editor',
+    status: 'Active',
     isActive: true,
   },
   {
@@ -63,8 +77,9 @@ const initialUsers = [
     contactNumber: '09191234567',
     age: '16',
     gender: 'female',
-    role: 'Healer',
-    status: 'Guarding',
+    role: 'Viewer',
+    displayRole: 'Viewer',
+    status: 'Inactive',
     isActive: false,
   },
   {
@@ -76,15 +91,12 @@ const initialUsers = [
     contactNumber: '09201234567',
     age: '17',
     gender: 'male',
-    role: 'Shield',
-    status: 'Ready',
+    role: 'Viewer',
+    displayRole: 'Viewer',
+    status: 'Active',
     isActive: true,
   },
 ];
-
-const roles = ['Leader', 'Support', 'Healer', 'Shield', 'Observer'];
-const genders = ['male', 'female', 'other'];
-const statusOptions = ['All', 'Active', 'Inactive'];
 
 const blankForm = {
   firstName: '',
@@ -94,7 +106,7 @@ const blankForm = {
   contactNumber: '',
   age: '',
   gender: 'male',
-  role: 'Support',
+  role: 'Viewer',
   password: '',
   isActive: true,
 };
@@ -113,11 +125,26 @@ const UsersPage = () => {
   const [paginationModel, setPaginationModel] = useState({ pageSize: 5, page: 0 });
 
   // Fetch users from API on component mount
+  const resolveUserRole = (user) => normalizeRole(user?.type || user?.role);
+
   useEffect(() => {
     const loadUsers = async () => {
       try {
         const { data } = await fetchUsers();
-        setUsers(data);
+        console.log('Raw API users:', data);
+        const normalizedUsers = Array.isArray(data)
+            ? data.map((user) => {
+                const normalizedRole = resolveUserRole(user);
+                console.log(`User ${user.email}: raw type="${user.type}" role="${user.role}" -> normalized="${normalizedRole}"`);
+                return {
+                  ...user,
+                  type: normalizedRole.toLowerCase(),
+                  role: normalizedRole,
+                };
+              })
+          : [];
+        console.log('Normalized users:', normalizedUsers);
+        setUsers(normalizedUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
       }
@@ -135,7 +162,8 @@ const UsersPage = () => {
           .toLowerCase()
           .includes(searchValue);
 
-      const matchesRole = roleFilter === 'All' || user.role === roleFilter;
+      const userRole = user.displayRole || normalizeRole(user.role || user.type);
+      const matchesRole = roleFilter === 'All' || userRole === roleFilter;
       const matchesGender = genderFilter === 'All' || user.gender === genderFilter;
       const matchesStatus =
         statusFilter === 'All' || (statusFilter === 'Active' ? user.isActive : !user.isActive);
@@ -147,7 +175,7 @@ const UsersPage = () => {
   const handleOpenModal = (user = null) => {
     if (user) {
       setEditingUser(user);
-      setForm({
+        setForm({
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
@@ -155,7 +183,7 @@ const UsersPage = () => {
         contactNumber: user.contactNumber,
         age: user.age,
         gender: user.gender,
-        role: user.type || user.role || 'Support',
+        role: normalizeRole(user.role || user.type),
         password: '',
         isActive: user.isActive,
       });
@@ -224,6 +252,7 @@ const UsersPage = () => {
     event.preventDefault();
     if (!validate()) return;
 
+    const normalizedRole = normalizeRole(form.role);
     const nextUser = {
       ...form,
       firstName: form.firstName.trim(),
@@ -232,17 +261,40 @@ const UsersPage = () => {
       username: form.username.trim(),
       contactNumber: form.contactNumber.trim(),
       age: form.age.trim(),
-      type: form.role,
+      gender: form.gender.toLowerCase(),
+      role: normalizedRole.toLowerCase(),
+      type: normalizedRole.toLowerCase(),
+      address: form.address || '',
       status: form.isActive ? 'Active' : 'Inactive',
     };
 
     try {
       if (editingUser) {
         await updateUser(editingUser._id, nextUser);
-        setUsers((prev) => prev.map((user) => (user._id === editingUser._id ? { ...user, ...nextUser } : user)));
+        setUsers((prev) =>
+          prev.map((user) =>
+            user._id === editingUser._id
+              ? {
+                  ...user,
+                  ...nextUser,
+                  type: normalizedRole.toLowerCase(),
+                  role: normalizedRole,
+                  displayRole: normalizedRole,
+                }
+              : user
+          )
+        );
       } else {
         const { data } = await createUser(nextUser);
-        setUsers((prev) => [...prev, data]);
+        setUsers((prev) => [
+          ...prev,
+          {
+            ...data,
+            type: normalizedRole.toLowerCase(),
+            role: normalizedRole,
+            displayRole: normalizedRole,
+          },
+        ]);
       }
       handleCloseModal();
     } catch (error) {
@@ -255,13 +307,14 @@ const UsersPage = () => {
     try {
       const user = users.find(u => u._id === id);
       if (user) {
-        const updatedUser = { ...user, isActive: !user.isActive, status: !user.isActive ? 'Active' : 'Inactive' };
+        const updatedUser = {
+          ...user,
+          isActive: !user.isActive,
+          status: !user.isActive ? 'Active' : 'Inactive',
+          displayRole: normalizeRole(user.type || user.role),
+        };
         await updateUser(user._id, updatedUser);
-        setUsers((prev) =>
-          prev.map((u) =>
-            u._id === id ? updatedUser : u,
-          ),
-        );
+        setUsers((prev) => prev.map((u) => (u._id === id ? updatedUser : u)));
       }
     } catch (error) {
       console.error('Error updating user:', error);
@@ -278,7 +331,12 @@ const UsersPage = () => {
     },
     { field: 'username', headerName: 'Username', flex: 1, minWidth: 140 },
     { field: 'email', headerName: 'Email', flex: 1.5, minWidth: 200 },
-    { field: 'role', headerName: 'Role', flex: 1, minWidth: 140 },
+    {
+      field: 'displayRole',
+      headerName: 'Role',
+      flex: 1,
+      minWidth: 140,
+    },
     {
       field: 'status',
       headerName: 'Status',
@@ -321,13 +379,13 @@ const UsersPage = () => {
         <Stack spacing={4}>
           <Card sx={{ p: 4, bgcolor: 'rgba(15, 23, 42, 0.88)', border: '1px solid rgba(249, 115, 22, 0.18)' }} elevation={0}>
             <Typography variant="overline" sx={{ color: 'warning.main', letterSpacing: 2 }}>
-              Ally Registry
+              User Registry
             </Typography>
             <Typography variant="h3" sx={{ mt: 2, fontWeight: 700, color: 'common.white' }}>
-              Ichigo Squad Profiles
+              Manage User Accounts
             </Typography>
-            <Typography sx={{ mt: 2, color: 'rgba(226,232,240,0.78)' }}>
-              Search, filter, and manage key Soul Reapers with rules that make adding new allies simple and safe.
+            <Typography sx={{ mt: 2, color: 'rgba(226,232,240,0.78)'}}>
+              Search, filter, and manage users with roles and permissions for your application.
             </Typography>
           </Card>
 
@@ -382,7 +440,7 @@ const UsersPage = () => {
                 </FormControl>
               </Stack>
               <Button variant="contained" color="warning" startIcon={<AddIcon />} onClick={() => handleOpenModal()}>
-                Add Ally
+                Add User
               </Button>
             </Stack>
           </Card>
@@ -425,9 +483,25 @@ const UsersPage = () => {
           </Card>
         </Stack>
 
-        <Dialog open={open} onClose={handleCloseModal} fullWidth maxWidth="md">
-          <DialogTitle>{editingUser ? 'Edit Ally' : 'Add Ally'}</DialogTitle>
-          <DialogContent>
+        <Dialog
+          open={open}
+          onClose={handleCloseModal}
+          fullWidth
+          maxWidth="md"
+          PaperProps={{
+            sx: {
+              bgcolor: 'rgba(15, 23, 42, 0.96)',
+              color: 'common.white',
+              borderRadius: 4,
+              border: '1px solid rgba(249, 115, 22, 0.18)',
+              boxShadow: '0 30px 80px rgba(15, 23, 42, 0.35)',
+            },
+          }}
+        >
+          <DialogTitle sx={{ bgcolor: 'rgba(15, 23, 42, 0.96)', color: 'common.white', borderBottom: '1px solid rgba(249, 115, 22, 0.18)' }}>
+            {editingUser ? 'Edit User' : 'Add User'}
+          </DialogTitle>
+          <DialogContent sx={{ bgcolor: 'rgba(15, 23, 42, 0.96)' }}>
             <Stack spacing={3} sx={{ mt: 1 }}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
@@ -438,6 +512,10 @@ const UsersPage = () => {
                   onChange={handleInputChange}
                   error={Boolean(errors.firstName)}
                   helperText={errors.firstName}
+                  variant="filled"
+                  sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2 }}
+                  InputProps={{ sx: { color: 'common.white' }, disableUnderline: true }}
+                  InputLabelProps={{ sx: { color: 'rgba(226,232,240,0.7)' } }}
                 />
                 <TextField
                   fullWidth
@@ -447,6 +525,10 @@ const UsersPage = () => {
                   onChange={handleInputChange}
                   error={Boolean(errors.lastName)}
                   helperText={errors.lastName}
+                  variant="filled"
+                  sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2 }}
+                  InputProps={{ sx: { color: 'common.white' }, disableUnderline: true }}
+                  InputLabelProps={{ sx: { color: 'rgba(226,232,240,0.7)' } }}
                 />
               </Stack>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -458,6 +540,10 @@ const UsersPage = () => {
                   onChange={handleInputChange}
                   error={Boolean(errors.email)}
                   helperText={errors.email}
+                  variant="filled"
+                  sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2 }}
+                  InputProps={{ sx: { color: 'common.white' }, disableUnderline: true }}
+                  InputLabelProps={{ sx: { color: 'rgba(226,232,240,0.7)' } }}
                 />
                 <TextField
                   fullWidth
@@ -467,6 +553,10 @@ const UsersPage = () => {
                   onChange={handleInputChange}
                   error={Boolean(errors.username)}
                   helperText={errors.username}
+                  variant="filled"
+                  sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2 }}
+                  InputProps={{ sx: { color: 'common.white' }, disableUnderline: true }}
+                  InputLabelProps={{ sx: { color: 'rgba(226,232,240,0.7)' } }}
                 />
               </Stack>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -478,6 +568,10 @@ const UsersPage = () => {
                   onChange={handleInputChange}
                   error={Boolean(errors.contactNumber)}
                   helperText={errors.contactNumber}
+                  variant="filled"
+                  sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2 }}
+                  InputProps={{ sx: { color: 'common.white' }, disableUnderline: true }}
+                  InputLabelProps={{ sx: { color: 'rgba(226,232,240,0.7)' } }}
                 />
                 <TextField
                   fullWidth
@@ -487,32 +581,48 @@ const UsersPage = () => {
                   onChange={handleInputChange}
                   error={Boolean(errors.age)}
                   helperText={errors.age}
+                  variant="filled"
+                  sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2 }}
+                  InputProps={{ sx: { color: 'common.white' }, disableUnderline: true }}
+                  InputLabelProps={{ sx: { color: 'rgba(226,232,240,0.7)' } }}
                 />
               </Stack>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <FormControl fullWidth>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="gender-label" sx={{ color: 'rgba(226,232,240,0.7)' }}>
+                    Gender
+                  </InputLabel>
                   <Select
+                    labelId="gender-label"
+                    label="Gender"
                     name="gender"
                     value={form.gender}
                     onChange={handleInputChange}
-                    sx={{ bgcolor: 'rgba(255,255,255,0.04)', color: 'common.white' }}
+                    sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: 'common.white', borderRadius: 2 }}
+                    MenuProps={{ sx: { '& .MuiPaper-root': { bgcolor: 'rgba(15,23,42,0.96)', color: 'common.white' } } }}
                   >
                     {genders.map((gender) => (
-                      <MenuItem key={gender} value={gender}>
+                      <MenuItem key={gender} value={gender} sx={{ color: 'common.white' }}>
                         {gender}
                       </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
-                <FormControl fullWidth>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="role-label" sx={{ color: 'rgba(226,232,240,0.7)' }}>
+                    Role
+                  </InputLabel>
                   <Select
+                    labelId="role-label"
+                    label="Role"
                     name="role"
                     value={form.role}
                     onChange={handleInputChange}
-                    sx={{ bgcolor: 'rgba(255,255,255,0.04)', color: 'common.white' }}
+                    sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: 'common.white', borderRadius: 2 }}
+                    MenuProps={{ sx: { '& .MuiPaper-root': { bgcolor: 'rgba(15,23,42,0.96)', color: 'common.white' } } }}
                   >
                     {roles.map((role) => (
-                      <MenuItem key={role} value={role}>
+                      <MenuItem key={role} value={role} sx={{ color: 'common.white' }}>
                         {role}
                       </MenuItem>
                     ))}
@@ -528,26 +638,33 @@ const UsersPage = () => {
                 onChange={handleInputChange}
                 error={Boolean(errors.password)}
                 helperText={errors.password || 'At least 8 characters.'}
+                variant="filled"
+                sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 2 }}
                 InputProps={{
+                  sx: { color: 'common.white' },
+                  disableUnderline: true,
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton onClick={() => setShowPassword((prev) => !prev)} edge="end">
+                      <IconButton onClick={() => setShowPassword((prev) => !prev)} edge="end" sx={{ color: 'rgba(226,232,240,0.9)' }}>
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
                     </InputAdornment>
                   ),
                 }}
+                InputLabelProps={{ sx: { color: 'rgba(226,232,240,0.7)' } }}
               />
               <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Typography>Status</Typography>
-                <Switch name="isActive" checked={form.isActive} onChange={handleInputChange} />
+                <Typography sx={{ color: 'rgba(226,232,240,0.9)' }}>Status</Typography>
+                <Switch name="isActive" checked={form.isActive} onChange={handleInputChange} sx={{ color: 'warning.main' }} />
               </Stack>
             </Stack>
           </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 3 }}>
-            <Button onClick={handleCloseModal}>Cancel</Button>
+          <DialogActions sx={{ px: 3, pb: 3, bgcolor: 'rgba(15, 23, 42, 0.96)' }}>
+            <Button onClick={handleCloseModal} sx={{ color: 'rgba(226,232,240,0.8)' }}>
+              Cancel
+            </Button>
             <Button variant="contained" color="warning" onClick={handleSubmit}>
-              {editingUser ? 'Save Ally' : 'Create Ally'}
+              {editingUser ? 'Save User' : 'Create User'}
             </Button>
           </DialogActions>
         </Dialog>

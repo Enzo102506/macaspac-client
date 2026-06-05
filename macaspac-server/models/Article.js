@@ -12,14 +12,48 @@ const articleSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    excerpt: {
+      type: String,
+      default: '',
+    },
+    category: {
+      type: String,
+      default: 'General',
+    },
+    coverImage: {
+      type: String,
+      default: '',
+    },
     paragraphs: {
       type: [String],
       required: true,
     },
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    authorRole: {
+      type: String,
+      enum: ['admin', 'editor', 'viewer'],
+      required: true,
+    },
     status: {
       type: String,
-      enum: ['active', 'inactive'],
-      default: 'active',
+      enum: ['draft', 'published'],
+      default: 'draft',
+    },
+    isVisible: {
+      type: Boolean,
+      default: false,
+    },
+    publishDate: {
+      type: Date,
+      default: null,
+    },
+    imageUrl: {
+      type: String,
+      default: '',
     },
     isActive: {
       type: Boolean,

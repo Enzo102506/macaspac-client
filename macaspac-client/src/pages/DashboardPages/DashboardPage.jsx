@@ -1,5 +1,6 @@
 import DashboardLayout from '../../layouts/DashLayout';
 import { Box, Chip, Grid, LinearProgress, Paper, Stack, Typography } from '@mui/material';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const stats = [
   { label: 'Spirit Energy', value: 92 },
@@ -18,6 +19,16 @@ const squad = [
   { name: 'Rukia Kuchiki', role: 'Support' },
   { name: 'Orihime Inoue', role: 'Healer' },
   { name: 'Yasutora Chad', role: 'Shield' },
+];
+
+const trendData = [
+  { name: 'Mon', energy: 68, threat: 32 },
+  { name: 'Tue', energy: 74, threat: 28 },
+  { name: 'Wed', energy: 82, threat: 22 },
+  { name: 'Thu', energy: 76, threat: 26 },
+  { name: 'Fri', energy: 88, threat: 18 },
+  { name: 'Sat', energy: 94, threat: 14 },
+  { name: 'Sun', energy: 90, threat: 16 },
 ];
 
 const DashboardPage = () => {
@@ -56,6 +67,25 @@ const DashboardPage = () => {
                     </Grid>
                   ))}
                 </Grid>
+
+                <Box sx={{ mt: 4, p: 3, bgcolor: 'rgba(15, 23, 42, 1)', border: '1px solid rgba(249, 115, 22, 0.18)' }}>
+                  <Typography variant="subtitle2" sx={{ color: 'warning.main', letterSpacing: 1.5, mb: 3 }}>Energy Trend</Typography>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart data={trendData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="energyGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#FB923C" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#FB923C" stopOpacity={0.1} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fill: '#cbd5e1', fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: '#cbd5e1', fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(249, 115, 22, 0.16)', color: '#fff' }} />
+                      <Area type="monotone" dataKey="energy" stroke="#fb923c" fillOpacity={1} fill="url(#energyGradient)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Box>
 
                 <Box sx={{ mt: 4, p: 3, bgcolor: 'rgba(15, 23, 42, 1)', border: '1px solid rgba(249, 115, 22, 0.18)' }}>
                   <Typography variant="subtitle2" sx={{ color: 'warning.main', letterSpacing: 1.5, mb: 1 }}>Mission Notes</Typography>

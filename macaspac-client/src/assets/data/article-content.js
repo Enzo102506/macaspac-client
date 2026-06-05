@@ -4,6 +4,7 @@ import article3 from '../article-3.jpg';
 
 const articles = [
   {
+    slug: 'the-hollow-evolution',
     title: 'The Hollow Evolution',
     category: 'Soul Reaper Lore',
     excerpt:
@@ -12,6 +13,7 @@ const articles = [
     image: article1,
   },
   {
+    slug: 'bankai-breakthrough',
     title: 'Bankai Breakthrough',
     category: 'Blade Mastery',
     excerpt:
@@ -20,6 +22,7 @@ const articles = [
     image: article2,
   },
   {
+    slug: 'legacy-of-the-substitute',
     title: 'Legacy of the Substitute',
     category: 'Hero Journey',
     excerpt:

@@ -12,7 +12,6 @@ const SignUpPage = () => {
   const [contactNumber, setContactNumber] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('male');
-  const [type, setType] = useState('viewer');
   const [password, setPassword] = useState('');
   const [address, setAddress] = useState('');
   const [isActive, setIsActive] = useState(true);
@@ -64,7 +63,7 @@ const SignUpPage = () => {
         contactNumber: contactNumber.trim(),
         age: age.trim(),
         gender,
-        type,
+        type: 'viewer',
         password,
         address: address.trim(),
         isActive,
@@ -212,20 +211,17 @@ const SignUpPage = () => {
                 </select>
               </div>
 
-              {/* Role */}
+              {/* Role is fixed to viewer for public registration */}
               <div className="rounded-3xl border border-orange-500/20 bg-slate-900/80 p-5 shadow-inner shadow-orange-900/10">
                 <label className="block text-xs font-semibold uppercase tracking-[0.28em] text-orange-300">
                   Role
                 </label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  className="mt-3 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="editor">Editor</option>
-                  <option value="viewer">Viewer</option>
-                </select>
+                <input
+                  type="text"
+                  value="viewer"
+                  disabled
+                  className="mt-3 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none"
+                />
               </div>
             </div>
 

@@ -1,23 +1,33 @@
 const express = require('express');
 const {
   getArticles,
+  getArticleBySlug,
   createArticle,
   updateArticle,
   deleteArticle,
 } = require('../controllers/articleController');
+const {
+  authMiddleware,
+  optionalAuthMiddleware,
+  requireEditorOrAdmin,
+  requireAdmin,
+} = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// GET all articles
-router.get('/', getArticles);
+// GET articles (public viewable active articles for guests/viewers, full list for editors/admins)
+router.get('/', optionalAuthMiddleware, getArticles);
 
-// POST create new article
-router.post('/', createArticle);
+// GET single article by slug
+router.get('/:slug', optionalAuthMiddleware, getArticleBySlug);
 
-// PUT update article
-router.put('/:id', updateArticle);
+// POST create new article (editor/admin only)
+router.post('/', authMiddleware, requireEditorOrAdmin, createArticle);
 
-// DELETE toggle article status
-router.delete('/:id', deleteArticle);
+// PUT update article (editor/admin only)
+router.put('/:id', authMiddleware, requireEditorOrAdmin, updateArticle);
+
+// DELETE toggle article visibility (admin only)
+router.delete('/:id', authMiddleware, requireAdmin, deleteArticle);
 
 module.exports = router;

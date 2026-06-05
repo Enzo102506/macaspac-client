@@ -26,11 +26,12 @@ import { fetchArticles, createArticle, updateArticle, deleteArticle } from '../.
 const blankForm = {
   slug: '',
   title: '',
+  imageUrl: '',
   paragraphs: '',
   status: 'active',
 };
 
-const statusOptions = ['All', 'active', 'inactive'];
+const statusOptions = ['All', 'draft', 'published'];
 
 const DashArticleListPage = () => {
   const [articles, setArticles] = useState([]);
@@ -46,7 +47,14 @@ const DashArticleListPage = () => {
     const loadArticles = async () => {
       try {
         const { data } = await fetchArticles();
-        setArticles(data);
+        const normalized = Array.isArray(data)
+          ? data.map((article) => ({
+              ...article,
+              category: article.category || 'General',
+              paragraphs: Array.isArray(article.paragraphs) ? article.paragraphs : [],
+            }))
+          : [];
+        setArticles(normalized);
       } catch (error) {
         console.error('Error fetching articles:', error);
       }
@@ -54,12 +62,14 @@ const DashArticleListPage = () => {
     loadArticles();
   }, []);
 
+  
+
   const filteredRows = useMemo(() => {
     return articles.filter((article) => {
       const searchValue = searchText.trim().toLowerCase();
       const matchesSearch =
         !searchValue ||
-        [article.slug, article.title]
+        [article.slug, article.title, article.category]
           .join(' ')
           .toLowerCase()
           .includes(searchValue);
@@ -77,8 +87,9 @@ const DashArticleListPage = () => {
       setForm({
         slug: article.slug,
         title: article.title,
+        imageUrl: article.imageUrl || '',
         paragraphs: article.paragraphs?.join('\n') || '',
-        status: article.status,
+        status: article.status === 'published' ? 'active' : 'inactive',
       });
     } else {
       setEditingArticle(null);
@@ -129,9 +140,11 @@ const DashArticleListPage = () => {
     const nextArticle = {
       slug: form.slug.trim().toLowerCase(),
       title: form.title.trim(),
+      category: 'General',
+      imageUrl: form.imageUrl.trim(),
       paragraphs: paragraphsArray,
-      status: form.status,
-      isActive: form.status === 'active',
+      status: form.status === 'active' ? 'published' : 'draft',
+      isVisible: form.status === 'active',
     };
 
     try {
@@ -144,7 +157,13 @@ const DashArticleListPage = () => {
         );
       } else {
         const { data } = await createArticle(nextArticle);
-        setArticles((prev) => [...prev, data]);
+        setArticles((prev) => [
+          ...prev,
+          {
+            ...data,
+            paragraphs: Array.isArray(data.paragraphs) ? data.paragraphs : [],
+          },
+        ]);
       }
       handleCloseModal();
     } catch (error) {
@@ -153,13 +172,12 @@ const DashArticleListPage = () => {
     }
   };
 
-  const toggleStatus = async (id, currentStatus) => {
+  const toggleStatus = async (id, currentVisibility) => {
     try {
       const article = articles.find((a) => a._id === id);
       if (article) {
-        const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-        const updatedArticle = { ...article, status: newStatus, isActive: newStatus === 'active' };
-        await deleteArticle(id);
+        const updatedArticle = { ...article, isVisible: !currentVisibility };
+        await updateArticle(id, updatedArticle);
         setArticles((prev) =>
           prev.map((a) =>
             a._id === id ? updatedArticle : a
@@ -167,7 +185,7 @@ const DashArticleListPage = () => {
         );
       }
     } catch (error) {
-      console.error('Error updating article status:', error);
+      console.error('Error updating article visibility:', error);
     }
   };
 
@@ -185,22 +203,11 @@ const DashArticleListPage = () => {
       minWidth: 200,
     },
     {
-      field: 'paragraphs',
-      headerName: 'Paragraphs',
-      flex: 0.8,
-      minWidth: 100,
-      valueGetter: (params) => params.row.paragraphs?.length || 0,
-    },
-    {
-      field: 'preview',
-      headerName: 'Preview',
-      flex: 2,
-      minWidth: 250,
-      valueGetter: (params) => {
-        const firstParagraph = params.row.paragraphs?.[0] || '';
-        return firstParagraph.substring(0, 80) + (firstParagraph.length > 80 ? '...' : '');
-      },
-      sortable: false,
+      field: 'category',
+      headerName: 'Category',
+      flex: 1,
+      minWidth: 140,
+      valueGetter: (params) => params?.row?.category || 'General',
     },
     {
       field: 'status',
@@ -209,8 +216,22 @@ const DashArticleListPage = () => {
       minWidth: 120,
       renderCell: (params) => (
         <Chip
-          label={params.value === 'active' ? 'Active' : 'Inactive'}
-          color={params.value === 'active' ? 'success' : 'error'}
+          label={params.value === 'published' ? 'Published' : 'Draft'}
+          color={params.value === 'published' ? 'success' : 'warning'}
+          variant="outlined"
+          size="small"
+        />
+      ),
+    },
+    {
+      field: 'isVisible',
+      headerName: 'Visible',
+      flex: 0.8,
+      minWidth: 110,
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? 'Yes' : 'No'}
+          color={params.value ? 'success' : 'default'}
           variant="outlined"
           size="small"
         />
@@ -237,10 +258,10 @@ const DashArticleListPage = () => {
           <Button
             size="small"
             variant="contained"
-            color={row.status === 'active' ? 'warning' : 'success'}
-            onClick={() => toggleStatus(row._id, row.status)}
+            color={row.isVisible ? 'warning' : 'success'}
+            onClick={() => toggleStatus(row._id, row.isVisible)}
           >
-            {row.status === 'active' ? 'Disable' : 'Enable'}
+            {row.isVisible ? 'Hide' : 'Show'}
           </Button>
         </Stack>
       ),
@@ -310,17 +331,18 @@ const DashArticleListPage = () => {
                   border: 'none',
                   color: 'rgba(255,255,255,0.95)',
                   bgcolor: 'rgba(15, 23, 42, 0.88)',
-                  '& .MuiDataGrid-cell': {
-                    fontSize: '0.875rem',
+                  '& .MuiDataGrid-cell': { fontSize: '0.875rem' },
+                  '& .MuiDataGrid-columnHeaders, & .MuiDataGrid-columnHeader, & .MuiDataGrid-columnHeaderTitle, & .MuiDataGrid-columnHeaderWrapper': {
+                    backgroundColor: 'rgba(30, 41, 59, 0.95) !important',
+                    color: 'rgba(226, 232, 240, 0.95) !important',
+                    borderBottom: '1px solid rgba(249,115,22,0.06) !important',
                   },
-                  '& .MuiDataGrid-columnHeader': {
-                    bgcolor: 'rgba(249, 115, 22, 0.1)',
-                    color: 'rgba(226,232,240,0.95)',
-                    fontWeight: 700,
-                  },
-                  '& .MuiDataGrid-row:hover': {
-                    bgcolor: 'rgba(249, 115, 22, 0.08)',
-                  },
+                  '& .MuiDataGrid-columnSeparator': { color: 'rgba(255,255,255,0.06) !important' },
+                  '& .MuiDataGrid-virtualScroller': { bgcolor: 'rgba(15, 23, 42, 0.75)' },
+                  '& .MuiDataGrid-row:hover': { bgcolor: 'rgba(248, 113, 30, 0.12)' },
+                  '& .MuiDataGrid-footerContainer': { bgcolor: 'rgba(30, 41, 59, 0.95)', borderTop: '1px solid rgba(249, 115, 22, 0.15)' },
+                  '& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus': { outline: 'none' },
+                  '& .MuiDataGrid-row.Mui-selected, & .Mui-selected': { bgcolor: 'rgba(249, 115, 22, 0.12) !important' },
                 }}
               />
             </Box>
@@ -371,12 +393,24 @@ const DashArticleListPage = () => {
             />
             <TextField
               fullWidth
-              label="Paragraphs"
+              label="Image URL"
+              name="imageUrl"
+              value={form.imageUrl}
+              onChange={handleInputChange}
+              placeholder="https://..."
+              variant="filled"
+              InputProps={{
+                sx: { bgcolor: 'rgba(255,255,255,0.05)', color: 'common.white' },
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Content paragraphs"
               name="paragraphs"
               value={form.paragraphs}
               onChange={handleInputChange}
               error={!!errors.paragraphs}
-              helperText={errors.paragraphs || 'One paragraph per line'}
+              helperText={errors.paragraphs || 'Enter each paragraph on a new line.'}
               multiline
               rows={6}
               placeholder="First paragraph&#10;Second paragraph&#10;Third paragraph"
@@ -404,7 +438,7 @@ const DashArticleListPage = () => {
             Cancel
           </Button>
           <Button onClick={handleSubmit} variant="contained" color="warning">
-            {editingArticle ? 'Update' : 'Create'}
+            Save Article
           </Button>
         </DialogActions>
       </Dialog>

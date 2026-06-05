@@ -4,15 +4,15 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import PeopleIcon from '@mui/icons-material/People';
 import ArticleIcon from '@mui/icons-material/Article';
-import { Box, Divider, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography } from '@mui/material';
+import { Box, Button, Divider, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography } from '@mui/material';
 
 const drawerWidth = 280;
 
 const navItems = [
-  { label: 'Dashboard', to: '/dashboard', icon: <DashboardIcon /> },
-  { label: 'Reports', to: '/reports', icon: <BarChartIcon /> },
-  { label: 'Users', to: '/users', icon: <PeopleIcon />, requiredRole: 'admin' },
-  { label: 'Articles', to: '/articles', icon: <ArticleIcon />, requiredRole: 'admin' },
+  { label: 'Dashboard', to: '/dashboard', icon: <DashboardIcon />, allowedRoles: ['admin'] },
+  { label: 'Articles', to: '/dashboard/articles', icon: <ArticleIcon />, allowedRoles: ['admin', 'editor'] },
+  { label: 'Users', to: '/users', icon: <PeopleIcon />, allowedRoles: ['admin'] },
+  { label: 'Reports', to: '/reports', icon: <BarChartIcon />, allowedRoles: ['admin'] },
 ];
 
 const DashboardLayout = ({ children }) => {
@@ -22,10 +22,21 @@ const DashboardLayout = ({ children }) => {
 
   useEffect(() => {
     const path = location.pathname;
-    
-    // Block editors from accessing /dashboard/users
-    if (userType === 'editor' && (path === '/users' || path === '/dashboard/users')) {
+    const blockedForEditor = ['/users', '/dashboard/users', '/reports'];
+    const blockedForViewer = ['/dashboard', '/reports', '/users', '/dashboard/articles'];
+
+    if (userType === 'editor' && blockedForEditor.includes(path)) {
       navigate('/dashboard');
+      return;
+    }
+
+    if (userType === 'viewer' && blockedForViewer.includes(path)) {
+      navigate('/');
+      return;
+    }
+
+    if (!userType && path.startsWith('/dashboard')) {
+      navigate('/auth/signin');
       return;
     }
   }, [location.pathname, userType, navigate]);
@@ -61,7 +72,7 @@ const DashboardLayout = ({ children }) => {
 
         <List disablePadding>
           {navItems
-            .filter(item => !item.requiredRole || item.requiredRole === userType)
+            .filter(item => !item.allowedRoles || item.allowedRoles.includes(userType))
             .map((item) => (
             <ListItemButton
               key={item.label}
@@ -87,6 +98,18 @@ const DashboardLayout = ({ children }) => {
 
       <Box component="main" sx={{ flexGrow: 1, p: 3, backgroundColor: 'transparent' }}>
         <Toolbar />
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            component={Link}
+            to="/"
+            variant="contained"
+            color="warning"
+            size="small"
+            sx={{ textTransform: 'none' }}
+          >
+            Back to homepage
+          </Button>
+        </Box>
         {children}
       </Box>
     </Box>

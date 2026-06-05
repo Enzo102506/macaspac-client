@@ -5,7 +5,22 @@ const jwt = require('jsonwebtoken'); // for generating tokens
 const getUsers = async (req, res) => {
   try {
     const users = await User.find({}, '-password'); // Exclude the password field
-    res.json(users);
+    // Normalize role/type so UI shows the intended role even if DB has inconsistent fields
+    const normalized = users.map((u) => {
+      const type = (u.type || '').toString().toLowerCase();
+      const role = (u.role || '').toString().toLowerCase();
+      const resolved = type === 'admin' || role === 'admin'
+        ? 'admin'
+        : type === 'editor' || role === 'editor'
+          ? 'editor'
+          : 'viewer';
+      return {
+        ...u.toObject(),
+        type: resolved,
+        role: resolved,
+      };
+    });
+    res.json(normalized);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -26,8 +41,23 @@ const createUser = async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
-    // Create the user with the hashed password
-    const user = await User.create({ ...req.body, password: hashedPassword });
+    const requestedType = String(req.body.type || '').toLowerCase();
+    const allowedType = ['admin', 'editor', 'viewer'];
+
+    const type = req.user?.type === 'admin' && allowedType.includes(requestedType)
+      ? requestedType
+      : 'viewer';
+
+    const role = type;
+
+    // Create the user with the hashed password and properly assigned role and type
+    const user = await User.create({
+      ...req.body,
+      type,
+      role,
+      address: req.body.address || '',
+      password: hashedPassword,
+    });
 
     res.status(201).json(user);
   } catch (error) {
@@ -37,6 +67,14 @@ const createUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
+    const allowedType = ['admin', 'editor', 'viewer'];
+
+    if (req.body.type || req.body.role) {
+      const requestedType = String(req.body.type || req.body.role || '').toLowerCase();
+      req.body.type = allowedType.includes(requestedType) ? requestedType : 'viewer';
+      req.body.role = req.body.type;
+    }
+
     // Check if the password is being updated
     if (req.body.password) {
       // Hash the new password
@@ -44,7 +82,9 @@ const updateUser = async (req, res) => {
     }
 
     // Update the user with the new data
-    const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const user = await User.findByIdAndUpdate(req.params.id, req.body, {
+      returnDocument: 'after',
+    });
 
     res.json(user);
   } catch (error) {
@@ -89,7 +129,7 @@ const loginUser = async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    res.json({ message: 'Login successful', token, type: user.type, firstName: user.firstName });
+    res.json({ message: 'Login successful', token, type: user.type || user.role || 'viewer', firstName: user.firstName });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

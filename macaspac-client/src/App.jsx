@@ -1,11 +1,13 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 
 // HomePage Structure
-import Layout from "./layouts/Layout";
+import Layout from './layouts/Layout';
 import ArticlePage from './pages/LandingPages/ArticlePage';
+import ArticleDetailPage from './pages/LandingPages/ArticleDetailPage';
 import ArticleListPage from './pages/LandingPages/ArticleListPage';
 import HomePage from './pages/LandingPages/HomePage';
 import AboutPage from './pages/LandingPages/AboutPage';
+import AccessDeniedPage from './pages/LandingPages/AccessDeniedPage';
 import DashboardPage from './pages/DashboardPages/DashboardPage';
 import ReportsPage from './pages/DashboardPages/ReportsPage';
 import UsersPage from './pages/DashboardPages/UsersPage';
@@ -13,6 +15,22 @@ import DashArticleListPage from './pages/DashboardPages/DashArticleListPage';
 import SignInPage from './pages/AuthPages/SignInPage';
 import SignUpPage from './pages/AuthPages/SignUpPage';
 import NotFoundPage from './pages/LandingPages/NotFoundPage';
+import { getToken, getUserType } from './utils/auth';
+
+const RequireAuth = ({ children, allowedRoles = ['admin', 'editor'] }) => {
+  const token = getToken();
+  const userType = getUserType();
+
+  if (!token || !userType) {
+    return <Navigate to="/auth/signin" replace />;
+  }
+
+  if (!allowedRoles.includes(userType)) {
+    return <Navigate to="/access-denied" replace />;
+  }
+
+  return children;
+};
 
 const routes = [
   {
@@ -32,24 +50,48 @@ const routes = [
         element: <ArticlePage />,
       },
       {
+        path: 'articles/:slug',
+        element: <ArticleDetailPage />,
+      },
+      {
         path: 'article-list',
         element: <ArticleListPage />,
       },
       {
         path: 'dashboard',
-        element: <DashboardPage />,
+        element: (
+          <RequireAuth allowedRoles={['admin']}>
+            <DashboardPage />
+          </RequireAuth>
+        ),
       },
       {
         path: 'reports',
-        element: <ReportsPage />,
+        element: (
+          <RequireAuth allowedRoles={['admin']}>
+            <ReportsPage />
+          </RequireAuth>
+        ),
       },
       {
         path: 'users',
-        element: <UsersPage />,
+        element: (
+          <RequireAuth allowedRoles={['admin']}>
+            <UsersPage />
+          </RequireAuth>
+        ),
       },
       {
         path: 'dashboard/articles',
-        element: <DashArticleListPage />,
+        element: (
+          <RequireAuth allowedRoles={['admin', 'editor']}>
+            <DashArticleListPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'access-denied',
+        element: <AccessDeniedPage />,
       },
     ],
   },
