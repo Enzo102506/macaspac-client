@@ -28,7 +28,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import { fetchUsers, createUser, updateUser, deleteUser } from '../../services/UserService';
 
-const roles = ['Admin', 'Editor', 'Viewer'];
+const roles = ['Viewer', 'Editor', 'Admin'];
 const genders = ['male', 'female', 'other'];
 const statusOptions = ['All', 'Active', 'Inactive'];
 
@@ -598,8 +598,18 @@ const UsersPage = () => {
                     name="gender"
                     value={form.gender}
                     onChange={handleInputChange}
-                    sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: 'common.white', borderRadius: 2 }}
-                    MenuProps={{ sx: { '& .MuiPaper-root': { bgcolor: 'rgba(15,23,42,0.96)', color: 'common.white' } } }}
+                    sx={{
+                      bgcolor: 'rgba(255,255,255,0.05)',
+                      color: 'common.white',
+                      borderRadius: 2,
+                      '& .MuiSelect-icon': { color: 'rgba(226,232,240,0.85)' },
+                    }}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: { bgcolor: 'rgba(15,23,42,0.96)', color: 'common.white' },
+                      },
+                      sx: { zIndex: 1400 },
+                    }}
                   >
                     {genders.map((gender) => (
                       <MenuItem key={gender} value={gender} sx={{ color: 'common.white' }}>
@@ -608,26 +618,39 @@ const UsersPage = () => {
                     ))}
                   </Select>
                 </FormControl>
-                <FormControl fullWidth variant="outlined">
-                  <InputLabel id="role-label" sx={{ color: 'rgba(226,232,240,0.7)' }}>
-                    Role
-                  </InputLabel>
-                  <Select
-                    labelId="role-label"
-                    label="Role"
-                    name="role"
-                    value={form.role}
-                    onChange={handleInputChange}
-                    sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: 'common.white', borderRadius: 2 }}
-                    MenuProps={{ sx: { '& .MuiPaper-root': { bgcolor: 'rgba(15,23,42,0.96)', color: 'common.white' } } }}
-                  >
-                    {roles.map((role) => (
-                      <MenuItem key={role} value={role} sx={{ color: 'common.white' }}>
-                        {role}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <TextField
+                  select
+                  fullWidth
+                  variant="filled"
+                  label="Role"
+                  name="role"
+                  value={form.role}
+                  onChange={handleInputChange}
+                  sx={{
+                    bgcolor: 'rgba(255,255,255,0.05)',
+                    color: 'common.white',
+                    borderRadius: 2,
+                    '& .MuiFilledInput-root': { backgroundColor: 'rgba(255,255,255,0.05)' },
+                    '& .MuiFilledInput-input': { color: 'common.white' },
+                    '& .MuiSvgIcon-root': { color: 'rgba(226,232,240,0.85)' },
+                    '& .MuiInputLabel-root': { color: 'rgba(226,232,240,0.7)' },
+                  }}
+                  InputLabelProps={{ sx: { color: 'rgba(226,232,240,0.7)' } }}
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        sx: { bgcolor: 'rgba(15,23,42,0.96)', color: 'common.white' },
+                      },
+                      sx: { zIndex: 1400 },
+                    },
+                  }}
+                >
+                  {roles.map((role) => (
+                    <MenuItem key={role} value={role} sx={{ color: 'common.white' }}>
+                      {role}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Stack>
               <TextField
                 fullWidth

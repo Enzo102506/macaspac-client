@@ -1,5 +1,22 @@
 const Article = require('../models/Article');
 
+const normalizeArticleInput = (body) => {
+  const slug = String(body.slug || '').trim().toLowerCase();
+  const title = String(body.title || '').trim();
+  const excerpt = String(body.excerpt || '').trim();
+  const category = String(body.category || 'General').trim() || 'General';
+  const coverImage = String(body.coverImage || '').trim();
+  const imageUrl = String(body.imageUrl || '').trim();
+  const paragraphs = Array.isArray(body.paragraphs)
+    ? body.paragraphs.map((p) => String(p || '').trim()).filter((p) => p.length > 0)
+    : [];
+  const status = body.status === 'published' ? 'published' : 'draft';
+  const isVisible = Boolean(body.isVisible);
+  const publishDate = body.publishDate ? new Date(body.publishDate) : null;
+
+  return { slug, title, excerpt, category, coverImage, imageUrl, paragraphs, status, isVisible, publishDate };
+};
+
 // Get all articles
 exports.getArticles = async (req, res) => {
   try {
@@ -50,10 +67,25 @@ exports.getArticleBySlug = async (req, res) => {
 // Create a new article
 exports.createArticle = async (req, res) => {
   try {
-    const { slug, title, excerpt, category, paragraphs, status, isVisible, publishDate, coverImage, imageUrl } = req.body;
-
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const {
+      slug,
+      title,
+      excerpt,
+      category,
+      paragraphs,
+      status,
+      isVisible,
+      publishDate,
+      coverImage,
+      imageUrl,
+    } = normalizeArticleInput(req.body);
+
+    if (!slug || !title || paragraphs.length === 0) {
+      return res.status(400).json({ message: 'Slug, title, and paragraphs are required' });
     }
 
     const existingArticle = await Article.findOne({ slug });
@@ -61,7 +93,6 @@ exports.createArticle = async (req, res) => {
       return res.status(400).json({ message: 'Article with this slug already exists' });
     }
 
-    // When publishing, set publishDate to now if not provided
     let pubDate = publishDate;
     if (status === 'published' && !publishDate) {
       pubDate = new Date();
@@ -70,7 +101,7 @@ exports.createArticle = async (req, res) => {
     const newArticle = new Article({
       slug,
       title,
-      excerpt,
+      excerpt: excerpt || (paragraphs[0] || '').slice(0, 200),
       category,
       paragraphs,
       status,
@@ -91,6 +122,9 @@ exports.createArticle = async (req, res) => {
     const populatedArticle = await savedArticle.populate('author', 'firstName lastName email type');
     res.status(201).json(populatedArticle);
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Article slug already exists', error: error.message });
+    }
     res.status(500).json({ message: 'Error creating article', error: error.message });
   }
 };
@@ -99,7 +133,18 @@ exports.createArticle = async (req, res) => {
 exports.updateArticle = async (req, res) => {
   try {
     const { id } = req.params;
-    const { slug, title, excerpt, category, paragraphs, status, isVisible, publishDate, coverImage, imageUrl } = req.body;
+    const {
+      slug,
+      title,
+      excerpt,
+      category,
+      paragraphs,
+      status,
+      isVisible,
+      publishDate,
+      coverImage,
+      imageUrl,
+    } = normalizeArticleInput(req.body);
 
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -121,7 +166,6 @@ exports.updateArticle = async (req, res) => {
       return res.status(403).json({ message: 'Editors may only edit their own articles' });
     }
 
-    // When publishing, set publishDate to now if transitioning from draft to published
     let pubDate = publishDate;
     if (existingArticle.status === 'draft' && status === 'published' && !publishDate) {
       pubDate = new Date();
@@ -132,7 +176,7 @@ exports.updateArticle = async (req, res) => {
       {
         slug,
         title,
-        excerpt,
+        excerpt: excerpt || (paragraphs[0] || '').slice(0, 200),
         category,
         paragraphs,
         status,
@@ -150,6 +194,9 @@ exports.updateArticle = async (req, res) => {
 
     res.json(updatedArticle);
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Article slug already exists', error: error.message });
+    }
     res.status(400).json({ message: 'Error updating article', error: error.message });
   }
 };

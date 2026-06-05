@@ -44,9 +44,19 @@ const createUser = async (req, res) => {
     const requestedType = String(req.body.type || '').toLowerCase();
     const allowedType = ['admin', 'editor', 'viewer'];
 
-    const type = req.user?.type === 'admin' && allowedType.includes(requestedType)
-      ? requestedType
-      : 'viewer';
+    let type = 'viewer';
+    if (allowedType.includes(requestedType)) {
+      if (req.user?.type === 'admin') {
+        type = requestedType;
+      } else if (requestedType === 'admin') {
+        const userCount = await User.countDocuments();
+        if (userCount === 0) {
+          type = 'admin';
+        }
+      } else {
+        type = requestedType;
+      }
+    }
 
     const role = type;
 

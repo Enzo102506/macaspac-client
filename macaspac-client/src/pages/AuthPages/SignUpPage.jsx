@@ -12,6 +12,7 @@ const SignUpPage = () => {
   const [contactNumber, setContactNumber] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('male');
+  const [role, setRole] = useState('viewer');
   const [password, setPassword] = useState('');
   const [address, setAddress] = useState('');
   const [isActive, setIsActive] = useState(true);
@@ -63,7 +64,7 @@ const SignUpPage = () => {
         contactNumber: contactNumber.trim(),
         age: age.trim(),
         gender,
-        type: 'viewer',
+        type: role,
         password,
         address: address.trim(),
         isActive,
@@ -211,17 +212,19 @@ const SignUpPage = () => {
                 </select>
               </div>
 
-              {/* Role is fixed to viewer for public registration */}
               <div className="rounded-3xl border border-orange-500/20 bg-slate-900/80 p-5 shadow-inner shadow-orange-900/10">
                 <label className="block text-xs font-semibold uppercase tracking-[0.28em] text-orange-300">
                   Role
                 </label>
-                <input
-                  type="text"
-                  value="viewer"
-                  disabled
-                  className="mt-3 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none"
-                />
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="mt-3 w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400"
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="editor">Editor</option>
+                  <option value="admin">Admin</option>
+                </select>
               </div>
             </div>
 

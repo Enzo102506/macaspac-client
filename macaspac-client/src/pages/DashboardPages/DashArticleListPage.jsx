@@ -168,7 +168,12 @@ const DashArticleListPage = () => {
       handleCloseModal();
     } catch (error) {
       console.error('Error saving article:', error);
-      setErrors({ submit: error.response?.data?.message || 'Error saving article' });
+      setErrors({
+        submit:
+          error.response?.data?.message ||
+          error.message ||
+          'Error saving article',
+      });
     }
   };
 
