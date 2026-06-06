@@ -93,6 +93,10 @@ const routes = [
         path: 'access-denied',
         element: <AccessDeniedPage />,
       },
+      {
+        path: '*',
+        element: <NotFoundPage />,
+      },
     ],
   },
   {

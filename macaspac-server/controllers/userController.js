@@ -41,24 +41,13 @@ const createUser = async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
-    const requestedType = String(req.body.type || '').toLowerCase();
+    const requestedType = String(req.body.type || req.body.role || '').toLowerCase();
     const allowedType = ['admin', 'editor', 'viewer'];
 
-    let type = 'viewer';
-    if (allowedType.includes(requestedType)) {
-      if (req.user?.type === 'admin') {
-        type = requestedType;
-      } else if (requestedType === 'admin') {
-        const userCount = await User.countDocuments();
-        if (userCount === 0) {
-          type = 'admin';
-        }
-      } else {
-        type = requestedType;
-      }
-    }
-
+    const type = allowedType.includes(requestedType) ? requestedType : 'viewer';
     const role = type;
+
+    console.log('createUser body type:', req.body.type, 'requestedType:', requestedType, 'computed type:', type);
 
     // Create the user with the hashed password and properly assigned role and type
     const user = await User.create({

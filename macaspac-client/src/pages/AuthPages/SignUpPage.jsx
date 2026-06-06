@@ -65,6 +65,7 @@ const SignUpPage = () => {
         age: age.trim(),
         gender,
         type: role,
+        role,
         password,
         address: address.trim(),
         isActive,
